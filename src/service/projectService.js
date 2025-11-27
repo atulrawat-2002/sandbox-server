@@ -1,20 +1,25 @@
 import { v4 as uuid } from 'uuid'
 import fs from 'fs/promises'
-import child_process from 'child_process'
-import util from 'util'
 import { REACT_PROJECT_COMMAND } from '../config/serverConfig.js'
-const execpromisified = util.promisify(child_process.exec);
+import { execPromisify } from '../utils/execUtility.js'
+import path from 'path';
+import directoryTree from 'directory-tree';
 
+export const createProjectService = async () => {
+    const projectId = uuid()
+    console.log(projectId)
 
-export const projectService = async () => {
-    const projectid = uuid()
-    console.log(projectid)
+   fs.mkdir(`./projects/${projectId}`)
 
-   fs.mkdir(`./projects/${projectid}`)
-
-    const response = await execpromisified(`${REACT_PROJECT_COMMAND}`, {
-        cwd: `./projects/${projectid}`
+    const response = await execPromisify(`${REACT_PROJECT_COMMAND}`, {
+        cwd: `./projects/${projectId}`
     })
 
-    return response;
+    return projectId;
+}
+
+export const getProjectTreeService = (projectId) => {
+    const projectPath = path.resolve(`./projects/${projectId}`);
+    const tree = directoryTree(projectPath)
+    return tree;
 }
