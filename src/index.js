@@ -8,6 +8,7 @@ import { createServer } from 'node:http'
 import chokidar from 'chokidar';
 import path from "node:path"
 import { handleEditorSocketEvents } from "./socketHandlers/editorHandler.js"
+import { Stats } from "node:fs"
 
 
 const app = express()
@@ -33,7 +34,7 @@ editorNameSpace.on("connection", (socket) => {
 
     const projectId = socket.handshake.query.projectId; 
     console.log(projectId);
-    handleEditorSocketEvents(socket)
+    handleEditorSocketEvents(socket, editorNameSpace)
 
     if(projectId) {
         var watcher = chokidar.watch("./projects", {
