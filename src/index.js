@@ -27,8 +27,6 @@ app.use(cors())
 
 const editorNameSpace = io.of('/editor');
 
-
-
 editorNameSpace.on("connection", (socket) => {
     console.log("Connection established of editor namespace");
 
