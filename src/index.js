@@ -9,6 +9,7 @@ import chokidar from 'chokidar';
 import path from "node:path"
 import { handleEditorSocketEvents } from "./socketHandlers/editorHandler.js"
 import { Stats } from "node:fs"
+import { handleContainerCreate } from "./containers/handleContainerCreate.js"
 
 
 const app = express()
@@ -56,9 +57,25 @@ editorNameSpace.on("connection", (socket) => {
     })
 })
 
+const terminalNameSpace = io.of('/terminal');
+
+terminalNameSpace.on('connection', (socket) => {
+    const projectId = socket.handshake.query.projectId; 
+    console.log("terminal socket connection established")
+
+    socket.on("shell-input", (data) => {
+        console.log("input recieved ", data)
+        terminalNameSpace.emit("shell-output", data)
+    })
+
+    handleContainerCreate(projectId, socket);
+
+})
+
 app.use("/api", apiRouter)
 
 server.listen(PORT, () => {
     console.log(`App is listening on port no. ${PORT}`);
+    console.log(import.meta.dirname)
     
 })
