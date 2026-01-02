@@ -10,7 +10,8 @@ import path from "node:path";
 import { handleEditorSocketEvents } from "./socketHandlers/editorHandler.js";
 import { Stats } from "node:fs";
 import { handleContainerCreate } from "./containers/handleContainerCreate.js";
-import { log } from "node:console";
+import { WebSocketServer } from "ws";
+import { handleTerminalCreation } from "./containers/handleTerminalCreation.js";
 
 const app = express();
 const server = createServer(app);
@@ -56,31 +57,40 @@ editorNameSpace.on("connection", (socket) => {
   });
 });
 
-const terminalNameSpace = io.of("/terminal");
-
-terminalNameSpace.on("connection", (socket) => {
-  const projectId = socket.handshake.query.projectId;
-  console.log("terminal socket connection established");
-
-  // socket.on("shell-input", (data) => {
-  //     console.log("input recieved ", data)
-  //     terminalNameSpace.emit("shell-output", data)
-  // })
-
-  socket.on("disconnect", () => {
-    console.log("Terminal disconnect");
-  });
-
-  handleContainerCreate(projectId, socket);
-});
-
 app.use("/api", apiRouter);
 
+server.listen(PORT, (error) => {
+  if (error) {
+    console.log("Error while listening ", error);
+  }
+  console.log(`App is listening on port no. ${PORT}`);
+});
 
-  server.listen(PORT, (error) => {
-    if (error) {
-        console.log("Error while listening ", error)
-    }
-    console.log(`App is listening on port no. ${PORT}`);
+const webSocketForTerminal = new WebSocketServer({
+  noServer: true,
+});
+
+server.on("upgrade", (req, tcp, head) => {
+  const isTerminal = req?.url.includes("/terminal");
+
+  if (isTerminal) {
+    const projectId = req.url.split("=")[1];
+    console.log("project id recieved from URL ", projectId);
+    handleContainerCreate(projectId, webSocketForTerminal, req, tcp, head);
+  }
+  
+});
+
+webSocketForTerminal.on("connection", (ws, req, container) => {
+  console.log("Terminal connected");
+  handleTerminalCreation(ws, container);
+
+  ws.on("close", () => {
+    container.remove({ force: true }, (err, data) => {
+      if (err) {
+        console.log("error while removing the container", err);
+      }
+      console.log("Container removed ", data);
+    });
   });
-
+});
